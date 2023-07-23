@@ -5,6 +5,46 @@
 @require: code-printer/code-theme
 @require: figbox/figbox
 
+let-block +code-block-c source =
+  '<
+    +code-printer?:(
+      CodePrinter.make-config CodeSyntax.c CodeTheme.iceberg-light
+      |> CodePrinter.set-number-fun CodeDesign.number-fun-null
+    )(source);
+  >
+
+let-block +code-block-cpp source =
+  '<
+    +code-printer?:(
+      CodePrinter.make-config CodeSyntax.cpp CodeTheme.iceberg-light
+      |> CodePrinter.set-number-fun CodeDesign.number-fun-null
+    )(source);
+  >
+
+let-block +code-block-java source =
+  '<
+    +code-printer?:(
+      CodePrinter.make-config CodeSyntax.java CodeTheme.iceberg-light
+      |> CodePrinter.set-number-fun CodeDesign.number-fun-null
+    )(source);
+  >
+
+let-block +code-block-go source =
+  '<
+    +code-printer?:(
+      CodePrinter.make-config CodeSyntax.go CodeTheme.iceberg-light
+      |> CodePrinter.set-number-fun CodeDesign.number-fun-null
+    )(source);
+  >
+
+let-block +code-block-rust source =
+  '<
+    +code-printer?:(
+      CodePrinter.make-config CodeSyntax.rust CodeTheme.iceberg-light
+      |> CodePrinter.set-number-fun CodeDesign.number-fun-null
+    )(source);
+  >
+
 let-block +code-block-php source =
   '<
     +code-printer?:(
@@ -12,6 +52,13 @@ let-block +code-block-php source =
       |> CodePrinter.set-number-fun CodeDesign.number-fun-null
     )(source);
   >
+
+let-inline \bad = {
+    \text-color(Color.rgb 0.75 0.25 0.25){Bad}
+  }
+let-inline \good = {
+    \text-color(Color.rgb 0.1 0.5 0.1){Good}
+  }
 
 open FigBox
 in
@@ -24,10 +71,11 @@ document '<
 
   +make-title(|
     title = {
-      |TODO
+      |言語間で比較する
+      |エラーの通知と処理
       |};
     author = {|nsfisis (いまむら)|};
-    date = {|第TODO回PHP勉強会＠東京|};
+    date = {|第154回PHP勉強会＠東京|};
   |);
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -45,10 +93,346 @@ document '<
     ]);
   >
 
+  +frame{話すこと、話さないこと}<
+    +listing{
+      * 話すこと
+        ** 様々な言語におけるエラー通知の方法
+      * 話さないこと
+        ** 君たちはどう生きるか (PHP におけるベストプラクティス)
+    }
+  >
+
+  +frame{取り上げる言語}<
+    +listing{
+      * C
+      * C++
+      * Java
+      * Go
+      * Rust
+    }
+  >
+
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  +frame{まとめ}<
-    +p{TODO}
+  +section{|C|}<
+    +frame{C: 成功/失敗を戻り値で表す}<
+      +code-block-c(`#include <stdbool.h>
+
+bool do_something() {
+    // ...
+    if (success) {
+        return true;
+    } else {
+        return false;
+    }
+}
+      `);
+
+      +p{
+        PHP では \inline-code(`mkdir()`); など
+      }
+    >
+
+    +frame{C: 成功/失敗を戻り値で表す}<
+      +listing{
+        * \bad; 処理結果があるときに使えない
+        * \bad; エラーに情報を載せられない
+        * \bad; エラーハンドリングを省略できる
+          ** \bad; 省略したとき、後続の処理が一切止まらない
+      }
+    >
+
+    +frame{C: 引数で処理結果を受け取る}<
+      +code-block-c(`#include <stdbool.h>
+
+bool do_something(something* result) {
+    // ...
+    if (success) {
+        *result = ...;
+        return true;
+    } else {
+        return false;
+    }
+}
+      `);
+
+      +p{
+        PHP では \inline-code(`preg_match()`); など
+      }
+    >
+
+    +frame{C: 引数で処理結果を受け取る}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \bad; エラーハンドリングを省略できる
+          ** \good; 省略したとき、処理結果を使おうとすると止まる
+          ** \bad; 省略したとき、後続の処理が進みうる
+      }
+    >
+
+    +frame{C: 処理結果または失敗を返す}<
+      +code-block-c(`something* do_something() {
+    // ...
+    if (success) {
+        return result;
+    } else {
+        return NULL;
+    }
+}
+      `);
+
+      +p{
+        PHP では \inline-code(`fopen()`); など
+      }
+    >
+
+    +frame{C: 処理結果または失敗を返す}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \bad; エラーに情報を載せられない
+          ** 注: 動的型付き言語の場合はその限りでない
+        * \bad; エラーハンドリングを省略できる
+          ** \good; 省略したとき、処理結果を使おうとすると止まる
+          ** \bad; 省略したとき、後続の処理が進みうる
+      }
+    >
+
+    +frame{C: グローバル状態から通知する}<
+      +code-block-c(`some_error error;
+
+void do_something() {
+    // ...
+    if (success) {
+        error = 0;
+    } else {
+        error = 42;
+    }
+}
+
+some_error get_error() {
+    return error;
+}
+      `);
+
+      +p{
+        PHP では \inline-code(`json_decode()`); と \inline-code(`json_last_error()`); など
+      }
+    >
+
+    +frame{C: グローバル状態から通知する}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \bad; エラーハンドリングを省略できる
+          ** \bad; 省略したとき、後続の処理が一切止まらない
+      }
+    >
+  >
+
+  +section{|C++|}<
+    +frame{C++: 例外を投げる}<
+      +code-block-cpp(`#include <stdexcept>
+
+void do_something() {
+    // ...
+    if (!success) {
+        throw std::runtime_error{"..."};
+    }
+}
+      `);
+
+      +p{
+        PHP では \inline-code(`DateTimeImmutable::__construct()`); など
+      }
+    >
+
+    +frame{C++: 例外を投げる}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \bad; エラーハンドリングを省略できる
+          ** \good; 省略したとき、そこで止まる
+      }
+    >
+  >
+
+  +section{|Java|}<
+    +frame{Java: 検査例外}<
+      +code-block-java(`void doSomething() throws SomeException {
+    // ...
+    if (!success) {
+        throw new SomeException(...);
+    }
+}
+      `);
+
+      +p{
+        PHP では \inline-code(`@throws`); が (一応) 近い
+      }
+    >
+
+    +frame{Java: 検査例外}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \good; エラーハンドリングを省略するとコンパイルエラーになる
+          ** \good; 省略ができない
+      }
+    >
+
+    +frame{Java: 検査例外}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \good; エラーハンドリングを省略するとコンパイルエラーになる
+          ** \good; 省略ができない
+        * \bad; 大域脱出は処理の動きが複雑になる
+        * \bad; 例外クラスの継承ツリー設計が困難
+        * \bad; 回復不能なエラーまで例外で表される
+      }
+    >
+  >
+
+  +section{|Go|}<
+    +frame{Go: 多値返却}<
+      +code-block-go(`func doSomething() (int, error) {
+    // ...
+    if success {
+        return 42, nil
+    } else {
+        return 0, errors.New("...")
+    }
+}
+
+result, err := doSomething()
+if err != nil {
+    // ...
+}
+      `);
+    >
+
+    +frame{Go: 多値返却}<
+      +code-block-php(`<?php
+function do_something(): array {
+    // ...
+    if ($success) {
+        return [42, null];
+    } else {
+        return [null, new SomeError(...)];
+    }
+}
+
+[$result, $err] = do_something();
+if (isset($err)) {
+    // ...
+}
+      `);
+    >
+
+    +frame{Go: 多値返却}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \bad; エラーハンドリングを省略できる
+          ** \good; linter での検知は可能
+      }
+    >
+
+    +frame{Go: panic}<
+      +code-block-go(`func doSomething() int {
+    // ...
+    if !success {
+        panic("...")
+    }
+    return 42
+}
+      `);
+
+      +p{
+        回復不能なエラー。(基本的には) 捕まえられない
+      }
+    >
+
+    +frame{Go: 多値返却 + panic}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \bad; エラーハンドリングを省略できる
+          ** \good; linter での検知は可能
+        * \good; 特殊な構文なし、大域脱出なし
+        * \good; エラー値のカテゴライズに継承が使われない
+        * \good; 回復可能なエラーと回復不能なエラーを区別できる
+        * \bad; 静的型付き言語以外だと、C と同レベルの安全性になる
+      }
+    >
+  >
+
+  +section{|Rust|}<
+    +frame{Rust: 代数的データ型}<
+      +code-block-rust(`fn do_something() -> Result<i32, SomeError> {
+    // ...
+    if success {
+        Ok(42)
+    } else {
+        Err(SomeError::new())
+    }
+}
+      `);
+
+      +p{
+        PHP では union 型が一番近い
+      }
+    >
+
+    +frame{Rust: 代数的データ型 + panic}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \good; エラーハンドリングを省略するとコンパイルエラーになる
+          ** \good; 処理結果がない場合でも、linter での検知は可能
+        * \good; 特殊な構文なし、大域脱出なし
+        * \good; エラー値のカテゴライズに継承が使われない
+        * \good; 回復可能なエラーと回復不能なエラーを区別できる
+      }
+    >
+
+    +frame{Rust: 代数的データ型 + panic}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \good; エラーに情報を載せられる
+        * \good; エラーハンドリングを省略するとコンパイルエラーになる
+          ** \good; 処理結果がない場合でも、linter での検知は可能
+        * \good; 特殊な構文なし、大域脱出なし
+        * \good; エラー値のカテゴライズに継承が使われない
+        * \good; 回復可能なエラーと回復不能なエラーを区別できる
+        * \bad; 静的型付き言語以外だと、C と同レベルの安全性になる
+        * \bad; 言語側にそれ相応のシンタックスシュガーがないと書きづらい
+      }
+    >
+  >
+
+  +section{|PHP|}<
+    +frame{我らが PHP は...}<
+      +p{
+        C 言語の素朴な値による通知と例外をミックスしたキメラ
+      }
+      +p{
+        どう設計すべきかは今回のスコープ外
+      }
+    >
+
+    +frame{我らが PHP は...}<
+      +p{
+        C 言語の素朴な値による通知と例外をミックスしたキメラ
+      }
+      +p{
+        どう設計すべきかは今回のスコープ外
+      }
+      +p{
+        君たちはどう生きるか
+      }
+    >
   >
 
 >
