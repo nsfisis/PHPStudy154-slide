@@ -142,6 +142,33 @@ bool do_something() {
       }
     >
 
+    +frame{C: 処理結果または失敗を返す}<
+      +code-block-c(`something* do_something() {
+    // ...
+    if (success) {
+        return result;
+    } else {
+        return NULL;
+    }
+}
+      `);
+
+      +p{
+        PHP では \inline-code(`fopen()`); など
+      }
+    >
+
+    +frame{C: 処理結果または失敗を返す}<
+      +listing{
+        * \good; 処理結果があるときに使える
+        * \bad; エラーに情報を載せられない
+          ** 注: 動的型付き言語の場合はその限りでない
+        * \bad; エラーハンドリングを省略できる
+          ** \good; 省略したとき、処理結果を使おうとすると止まる
+          ** \bad; 省略したとき、後続の処理が進みうる
+      }
+    >
+
     +frame{C: 引数で処理結果を受け取る}<
       +code-block-c(`#include <stdbool.h>
 
@@ -171,33 +198,6 @@ bool do_something(something* result) {
       }
     >
 
-    +frame{C: 処理結果または失敗を返す}<
-      +code-block-c(`something* do_something() {
-    // ...
-    if (success) {
-        return result;
-    } else {
-        return NULL;
-    }
-}
-      `);
-
-      +p{
-        PHP では \inline-code(`fopen()`); など
-      }
-    >
-
-    +frame{C: 処理結果または失敗を返す}<
-      +listing{
-        * \good; 処理結果があるときに使える
-        * \bad; エラーに情報を載せられない
-          ** 注: 動的型付き言語の場合はその限りでない
-        * \bad; エラーハンドリングを省略できる
-          ** \good; 省略したとき、処理結果を使おうとすると止まる
-          ** \bad; 省略したとき、後続の処理が進みうる
-      }
-    >
-
     +frame{C: グローバル状態から通知する}<
       +code-block-c(`some_error error;
 
@@ -208,10 +208,6 @@ void do_something() {
     } else {
         error = 42;
     }
-}
-
-some_error get_error() {
-    return error;
 }
       `);
 
@@ -353,7 +349,7 @@ if (isset($err)) {
       `);
 
       +p{
-        回復不能なエラー。(基本的には) 捕まえられない
+        回復不能なエラー。通常のエラーと同じ方法では捕まえられない
       }
     >
 
